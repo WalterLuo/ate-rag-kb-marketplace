@@ -1,0 +1,30 @@
+{
+  "name": "ate-rag-kb",
+  "description": "ATE KB Router — routes ATE engineering questions to the local ate_kb MCP knowledge base for cited answers over V93000/SMT7 and J750/IG-XL documentation",
+  "version": "0.1.0",
+  "author": {
+    "name": "Walter Luo",
+    "email": ""
+  },
+  "homepage": "https://github.com/WalterLuo/ate-rag-kb",
+  "repository": "https://github.com/WalterLuo/ate-rag-kb",
+  "license": "MIT",
+  "keywords": [
+    "ate",
+    "ate-kb-router",
+    "semiconductor-test",
+    "smarTest",
+    "v93000",
+    "smt7",
+    "smt8",
+    "j750",
+    "igxl",
+    "tdc",
+    "timing",
+    "levels",
+    "patterns",
+    "rag",
+    "knowledge-base",
+    "mcp"
+  ]
+}

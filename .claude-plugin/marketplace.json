@@ -1,0 +1,20 @@
+{
+  "name": "ate-rag-kb-marketplace",
+  "description": "ATE KB Router marketplace — MCP-first ATE engineering question routing and cited knowledge-base answers",
+  "owner": {
+    "name": "Walter Luo",
+    "email": ""
+  },
+  "plugins": [
+    {
+      "name": "ate-rag-kb",
+      "description": "ATE KB Router — routes ATE engineering questions to the local ate_kb MCP knowledge base for cited answers over V93000/SMT7 and J750/IG-XL documentation",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Walter Luo",
+        "email": ""
+      }
+    }
+  ]
+}
