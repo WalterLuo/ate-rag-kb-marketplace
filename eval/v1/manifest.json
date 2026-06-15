@@ -1,0 +1,23 @@
+{
+  "version": "v1",
+  "description": "ATE RAG Knowledge Base retrieval evaluation dataset - 50 manually reviewed questions across 5 categories",
+  "created_at": "2026-05-21",
+  "question_count": 50,
+  "schema_version": "1.0",
+  "categories": [
+    "Timing / Timeset",
+    "Pattern",
+    "DPS / Power",
+    "PMU / Measurement",
+    "Flow / Test Program"
+  ],
+  "annotations": {
+    "expected_chunk_ids": "empty — to be populated after chunking strategy is frozen",
+    "expected_source_mds": "backfilled from data/evaluation_50_questions.json (manual review)",
+    "backfilled_at": "2026-05-21"
+  },
+  "gates": {
+    "source_precision_at_5": 0.65,
+    "failed_count": 0
+  }
+}

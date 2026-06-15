@@ -1,0 +1,28 @@
+cases:
+  - id: explicit_igxl_serial_loop
+    query: IG-XL 多 site 串行处理怎么实现？
+    answer_mode: direct
+    scopes: [j750/igxl]
+    required_terms: [SelectFirst, SelectNext, loopDone]
+    forbidden_terms: [ON_FIRST_INVOCATION_BEGIN]
+  - id: explicit_smt7_site_control
+    query: SMT7 Site Control 怎么用？
+    answer_mode: direct
+    scopes: [v93000/smt7]
+    required_terms: [ON_FIRST_INVOCATION_BEGIN]
+    forbidden_terms: [SelectFirst]
+  - id: exclusive_igxl_symbol
+    query: SelectFirst 怎么用？
+    answer_mode: direct
+    scopes: [j750/igxl]
+    required_terms: [SelectFirst]
+    forbidden_terms: [ON_FIRST_INVOCATION_BEGIN]
+  - id: wrong_platform_symbol
+    query: SMT7 SelectFirst 怎么用？
+    answer_mode: direct
+    scopes: [j750/igxl]
+    correction_required: true
+  - id: neutral_site_loop
+    query: 多 site 串行处理怎么实现？
+    answer_mode: platform_comparison
+    scopes: [j750/igxl, v93000/smt7]

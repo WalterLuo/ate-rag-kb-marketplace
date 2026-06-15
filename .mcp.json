@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "ate-kb": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}",
+        "python",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/start_mcp.py"
+      ],
+      "env": {
+        "ATE_KB_QUERY_DEVICE": "cpu",
+        "ATE_KB_RERANKER_DEVICE": "cpu",
+        "ATE_KB_AUTO_BOOTSTRAP": "1"
+      }
+    }
+  }
+}

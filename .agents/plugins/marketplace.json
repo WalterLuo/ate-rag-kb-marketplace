@@ -1,0 +1,20 @@
+{
+  "name": "ate-rag-kb-marketplace",
+  "interface": {
+    "displayName": "ATE RAG KB Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "ate-rag-kb",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

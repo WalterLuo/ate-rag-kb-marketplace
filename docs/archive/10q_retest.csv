@@ -1,0 +1,512 @@
+,序号,问题,使用MCP,内容相关,含source_md,含section_title,无幻觉,通过,回答步骤,问答记录,类别 2
+,1,smt7中，如何在测试代码中通过代码的方式写limit,是,无,含,含,无,通过,"回答步骤：
+  1. 使用 ate_kb.retrieve 进行初步检索，关键词为 ""smt7 测试代码中通过代码方式写limit limit设置
+  programming""
+  2. 发现返回的片段信息不完整，使用 ate_kb.get_document 分别获取 TMLimits
+  文档（110432.md）和并发测试方法示例文档（122281.md）的完整内容 
+  3. 由于文档内容超出 token 限制被保存到临时文件，使用 Read 工具读取这些文件获取详细代码示例
+  4. 再次使用 ate_kb.retrieve 检索 addLimit API、LIMIT 对象构造语法、judgeAndLog_ParametricTest
+  的具体用法
+  5. 第三次使用 ate_kb.retrieve 确认 addLimit 的语义（默认值 'NA'、需在 test flow 中补充值）
+  6. 综合以上信息，整理出三种代码写 limit 的方式并给出代码示例和引用来源
+  
+  用时：从接收问题到输出回答，大约 2–3 分钟。
+
+  是否调用了 MCP：是。","smt7中，如何在测试代码中通过代码的方式写limit                                                          
+
+  Read 2 files, called ate-kb 7 times (ctrl+o to expand)
+
+⏺ 在 SmarTest 7 中，通过代码方式写 limit 主要有三种途径，取决于你的使用场景：
+
+  1. 直接在代码中构造 LIMIT 对象（最灵活）
+
+  在测试方法的 process() 或 test() 函数中，直接使用 LIMIT 类构造 limit，配合 judgeAndLog_ParametricTest()
+   进行判断和 datalog 记录：
+
+  #include ""testmethod.hpp""
+
+  // 在 process() 中直接定义 limit 值
+  double low_limit = -10.0;
+  double high_limit = 10.0;
+  double measured_value = 5.5;
+
+  // 方式A：使用 LIMIT 对象
+  TESTSET().judgeAndLog_ParametricTest(
+      ""Aout"",                          // pin name
+      ""THD"",                           // test name
+      LIMIT(TM::GT, low_limit, TM::LT, high_limit),  // 代码中直接写 limit
+      measured_value
+  );
+
+  // 方式B：用于数组结果
+  ARRAY_D values;
+  // ... 填充测量值 ...
+  TESTSET().judgeAndLog_ParametricTest(
+      ""Aout"",
+      ""THD"",
+      LIMIT(TM::GE, 0.0, TM::LE, 100.0),
+      values
+  );
+
+  LIMIT 构造语法：
+  - LIMIT(TM::GT, low, TM::LT, high) — 大于 low 且小于 high
+  - LIMIT(TM::GE, low, TM::LE, high) — 大于等于 low 且小于等于 high
+  - 也可以只写单边 limit，如 LIMIT(TM::GT, 0.0) 
+
+  2. 使用 TMLimits 从外部 CSV 文件加载
+
+  适合需要频繁调整 limit 值、或在不同测试阶段（wafer test / QC）使用不同 limit 集合的场景：
+
+  #include ""TMLimits.h""
+  using namespace cct;
+  using V93kLimits::tmLimits;
+
+  virtual void process()
+  {
+      string tsName = CCTgetTestsuiteName();  // 获取当前 testsuite 名称
+
+      // 从 CSV limit 文件中获取指定 test 的 limit
+      auto limit_snr = tmLimits.getLimit(tsName, ""DAC_SNR"");
+
+      // 使用获取到的 limit 进行判断
+      bool pass = TestSet.cont(TM::CONTINUE)
+                         .judgeAndLog_ParametricTest(
+                             dac_out,
+                             ""DAC_SNR"",
+                             limit_snr.TEST_API_LIMIT,  // 从 CSV 解析出的 LIMIT 对象
+                             measured_snr
+                         );
+  }
+  
+  CSV 文件格式示例（需在 test flow setup 中指定）：
+
+  ┌─────────────────┬───────────┬──────┬─────────────┬───────────┬────────────┬─────┐
+  │ Test suite name │ Test name │ Pins │ Test number │ Low limit │ High limit │ ... │
+  ├─────────────────┼───────────┼──────┼─────────────┼───────────┼────────────┼─────┤
+  │ a               │ test      │ Pin1 │ 301         │ -5        │ 5          │ ... │
+  ├─────────────────┼───────────┼──────┼─────────────┼───────────┼────────────┼─────┤
+  │ a               │ test      │ Pin2 │ 302         │ -10       │ 10         │ ... │
+  └─────────────────┴───────────┴──────┴─────────────┴───────────┴────────────┴─────┘
+
+  3. 在测试方法中声明 Limit 接口（addLimit）
+
+  在 addParameters() 中声明 limit，让 test flow 编辑器可以识别并配置：
+
+  virtual void addParameters()
+  {
+      addParameter(""dac_out"", ""string"", &dac_out)
+          .setOptions(""DAC_WDE:DAC.VOUT.MCA:DAC.VOUT.MCB"");
+
+      // 声明 limit（默认值会是 'NA'）
+      addLimit(""DAC_SNR"");
+      addLimit(""DAC_THD"");
+  }
+  
+  注意：addLimit 只是声明接口，默认值是 'NA'。真正的 limit 值仍需在 test flow 编辑器的 Limits tab 或 
+  Properties view 中填写，或在代码中用上述第 1、2 种方式覆盖。
+
+  ---
+  引用来源：
+  - addLimit API 定义：99952.md（/opt/hp93000/soc/testmethod/include/testmethod.hpp）
+  - TMLimits 类：110432.md（/opt/hp93000/soc/prod_com/include/MAPI/TMLimits.h）
+  - 并发测试方法示例：122281.md
+  - TESTSET().judgeAndLog_ParametricTest() 语法：127827.md、58886.md
+  
+  如果你的需求是完全不依赖 test flow GUI、纯代码驱动 limit，推荐使用第 1 种 LIMIT(...) 直接构造的方式",
+,2,smt7中ARRAY在代码中的作用是什么,是,无,是,是,是,通过,"回答步骤：
+  1. 使用 ate_kb.retrieve 进行初步检索，关键词为 ""smt7 ARRAY data type code function purpose usage test
+  method"" 
+  2. 并行发起两次 ate_kb.retrieve：
+    - 关键词 ""ARRAY_D ARRAY_I test method data types variables vector array double integer""，获取 ARRAY
+  类型定义
+    - 关键词 ""ARRAY_D getWaveform digitize waveform data array DSP_SPECTRUM""，获取实际使用场景
+  3. 使用 ate_kb.get_document 获取 ARRAY_D 官方参考文档（125211.md）的完整内容，以了解成员函数和构造函数
+  4. 再次使用 ate_kb.retrieve 搜索 ""ARRAY_I ARRAY_D member functions resize size access process data
+  methods""，补充数组操作方法
+  5. 由于 ARRAY_D 文档内容超出 token 限制被保存到临时文件，使用 Read 工具读取该文件获取
+  resize()、resizeNoKeep()、构造函数示例等细节
+  6. 综合以上信息，整理出 ARRAY 的核心类型（ARRAY_D / ARRAY_I / ARRAY_COMPLEX）、主要作用（存储波形、DSP
+  算法输入输出、测试结果数组）、常用成员函数和代码示例","smt7中ARRAY在代码中的作用是什么                                                                        
+
+  Read 1 file, called ate-kb 5 times (ctrl+o to expand)
+
+⏺ 在 SmarTest 7 中，ARRAY 是专门为测试方法（test
+  method）设计的专用数组数据类型，用于在测试代码中存储和处理批量数据。它不是标准 C++ 的数组，而是
+  SmarTest 框架封装好的类，提供了自动内存管理和丰富的数据处理方法。
+
+  主要 ARRAY 类型
+
+  ┌───────────────┬──────────────────────┬──────────────────────────────────────┐
+  │     类型      │    存储的数据类型    │               典型用途               │
+  ├───────────────┼──────────────────────┼──────────────────────────────────────┤
+  │ ARRAY_D       │ DOUBLE（双精度浮点） │ 波形数据、电压采样、频谱结果、测量值 │
+  ├───────────────┼──────────────────────┼──────────────────────────────────────┤
+  │ ARRAY_I       │ INT（整数）          │ ADC 采样数据、整数序列、索引数组     │
+  ├───────────────┼──────────────────────┼──────────────────────────────────────┤
+  │ ARRAY_COMPLEX │ 复数                 │ IQ 数据、复数频谱结果                │
+  └───────────────┴──────────────────────┴──────────────────────────────────────┘
+
+  核心作用
+
+  1. 存储 Digitizer 采集的波形数据
+
+  最常见的用途是接收数字化仪（DGT）上传的波形数据：
+  
+  ARRAY_D dgtz_waveform;
+  // 从 digitizer 获取波形数据
+  dgtz_waveform = DGT(dac_out).getWaveform(CCTgetUploadId(dac_out));
+
+  2. 作为 DSP 算法的输入和输出
+
+  几乎所有的 DSP 函数都使用 ARRAY_D 作为参数：
+
+  ARRAY_D spect_waveform;
+  ARRAY_D dgtz_waveform;
+  // 对波形做 FFT 频谱分析
+  DSP_SPECTRUM(dgtz_waveform, spect_waveform, DB, 1.0, HANNING, 0);
+
+  // FIR 滤波
+  ARRAY_D dVsmp;
+  ARRAY_D dWave;
+  dVsmp = DGT(""AOUT"").getWaveform();    // 上传 digitizer 数据
+  DSP_CONVOL(dFIR, dVsmp, dWave, ON);   // 滤波操作
+
+  3. 存储和处理参数化测试结果
+
+  ARRAY_D values;
+  // ... 填充多个测量值 ...
+  TESTSET().judgeAndLog_ParametricTest(
+      ""Aout"", ""THD"",
+      LIMIT(TM::GT, low_limit, TM::LT, high_limit),
+      values    // 数组形式的结果
+  );
+
+  常用成员函数和操作
+  
+  // 构造和初始化
+  ARRAY_D a1;           // 空数组，可 resize
+  ARRAY_D a2(1024);     // 固定 1024 个元素，不可 resize
+  ARRAY_D a3(a2, 100, 30);  // 从 a2 的第 100 个元素开始取 30 个
+
+  // 调整大小
+  a1.resize(200);       // 扩展为 200 个元素
+  a1.resizeNoKeep(512); // 重新分配并丢弃旧数据
+
+  // 元素访问（类似标准数组）
+  a2[j] = j * 0.1;
+
+  // 数组运算（重载运算符）
+  ARRAY_D& operator*(DOUBLE factor);  // 数组整体乘以一个系数
+
+  关键特点
+
+  - 自动内存管理：无需手动 malloc/free
+  - 与硬件 API 深度集成：getWaveform()、getComplexWaveform() 等直接返回 ARRAY_D / ARRAY_COMPLEX
+  - DSP 原生支持：DSP_SPECTRUM、DSP_THD、DSP_CONVOL 等函数直接操作 ARRAY_x 类型
+  - 支持流输出：可以直接用 cout << array 打印到 UI report 窗口
+
+  引用来源：
+  - ARRAY_D 数据类型定义：125211.md
+  - DSP 编程中的 ARRAY_x 用法：20847.md
+  - 波形采集与 DSP 示例：115880.md、29230.md
+  - getWaveform() 返回类型说明：92931.md",
+,3,smt7中test suite的site control都有什么用处,是,,含,含,无,通过,"回答步骤：
+  1. 使用 ate_kb.retrieve 进行初步检索，关键词为 ""smt7 test suite site control purpose usage testflow
+  site mode""，获取 site control 的基础概念和用途 
+  2. 使用 ate_kb.retrieve 进一步搜索 ""site control flags test suite parallel serial site mode off on
+  multisite test sequence""，获取 site control flags 的分类（Allow parallel、Site control、Site match）
+  3. 并行发起两次 ate_kb.retrieve：
+    - 关键词 ""Allow parallel flag test suite serial parallel execution multiple sites default on
+  off""，获取 Allow parallel flag 和 Parallel Mode flag 的详细行为、默认值、以及必须设为串行的场景
+    - 关键词 ""Expanded Site Control window site test sequence settings parallel semiparallel serial
+  mode""，获取 Expanded Site Control Window 的功能和三种执行模式（Parallel / Serial / Semi-Parallel）
+  4. 综合以上信息，整理出 site control 的核心作用（控制多 site 执行顺序）、关键 flags（Allow
+  Parallel、Parallel Mode、Site Match Mode）、调试用途以及实际使用场景示例","smt7中test suite的site control都有什么用处                                                            
+
+  Called ate-kb 4 times (ctrl+o to expand)
+
+⏺ 在 SmarTest 7 中，test suite 的 Site Control 主要用于控制多
+  site（multi-site）测试时的执行顺序和同步方式。它决定了多个 site
+  是同时执行、依次执行，还是按分组半并行执行。
+
+  Site Control 的核心作用
+
+  1. 控制执行模式：并行 / 串行 / 半并行
+
+  ┌─────────────────────────┬────────────────────┬────────────────────────────────────┐
+  │          模式           │        说明        │              典型场景              │
+  ├─────────────────────────┼────────────────────┼────────────────────────────────────┤
+  │ Parallel（并行）        │ 所有 site 同时执行 │ 各 site 完全独立，无资源冲突       │
+  ├─────────────────────────┼────────────────────┼────────────────────────────────────┤
+  │ Serial（串行）          │ 所有 site 依次执行 │ 需要共享仪器、调试、或存在依赖关系 │
+  ├─────────────────────────┼────────────────────┼────────────────────────────────────┤
+  │ Semi-Parallel（半并行） │ Site 分组并行执行  │ 仪器资源有限，需要分批测量         │
+  └─────────────────────────┴────────────────────┴────────────────────────────────────┘
+
+  在 Expanded Site Control Window 中可以直接为每个 test suite 设置上述模式，也可以使用 Parallel 和 Serial
+   按钮快速切换。
+
+  ---
+  关键 Flags
+  
+  Allow Parallel Flag（Test Suite 级别）
+
+  - 默认：ON（并行执行）
+  - 作用：决定该 test suite 在多 site 测试时是并行还是串行执行
+  - 必须设为 OFF（串行）的情况：
+    - 执行 user-procedure 时
+    - 该 test suite 依赖于前一个 test suite 的同步状态
+    - 该 test suite 依赖于前一个 test suite 生成的错误信息
+
+  Parallel Mode Flag（Testflow 级别）
+
+  - 作用：控制整个 testflow 是否允许并行测试
+  - 特点：这是一个全局开关。如果设为 false（off），会覆盖所有 test suite 的 Allow Parallel
+  设置，强制所有测试串行执行
+  - 用途：调试时快速关闭并行执行以排查问题
+
+  Site Match Mode Flag
+
+  - OFF：所有 site 同时启动（同步开始）
+  - ON：site 依次启动，每个 site 之间有一个小的延迟（successive start）
+  - 用途：用于使用共享模拟模块（analog modules shared with multiple sites）的多 site 测试场景
+
+  ---
+  Site Control Window 的调试用途
+  
+  Site Control 不仅控制执行，还用于多 site 调试：
+
+  - 选择要测试的 site：在 Site Control Window 中启用/禁用特定 site
+  - 选择结果焦点 site：指定显示哪个 site 的测试结果
+  - 监视 site 状态：观察 test flow 执行期间各 site 的状态变化（pass/fail/不可用等）
+
+  ---
+  实际使用示例
+
+  场景 1：常规多 site 数字测试
+  - Allow Parallel = ON
+  - Parallel Mode = ON
+  - 所有 site 同时执行，最大化吞吐
+  
+  场景 2：四 site RF 测试，但只有 2 张前端卡
+  - 使用 Semi-Parallel 模式
+  - Site 1 & 2 同时测量，Site 3 & 4 等下一轮
+  - 通过 Expanded Site Control Window 配置分组
+  
+  场景 3：调试并行问题
+  - 临时将 Parallel Mode 设为 OFF
+  - 或单独将某个 test suite 的 Allow Parallel 设为 OFF
+  - 定位是并行导致的失败还是测试本身的问题
+  
+  ---
+  引用来源：
+  - Site control flags 总览：100324.md
+  - Allow parallel flag 详细说明：20264.md
+  - Site Match Mode flag：21615.md
+  - Expanded Site Control Window：100119.md
+  - 并行执行 flag 设置：42597.md
+  - 半并行测试示例：102517.md",
+,4,smt7中port pin的用处是什么,是,正常,含,含,无,通过,"multi-site""
+  2. 并行发起两次 ate_kb.retrieve：
+    - 关键词 ""smt7 port definition pin mapping tester resource DUT connection channel""，获取 port 与 pin
+  的基础定义和映射关系
+    - 关键词 ""Port Scale RF port pin configuration DUT port allocation front end card""，获取 RF 测试中
+  port 的实际分配场景
+  3. 再次并行发起两次 ate_kb.retrieve：
+    - 关键词 ""pin configuration tool DUT pin tester channel resource mapping relationship""，获取 Pin
+  Configuration Tool 的具体用途和配置步骤
+    - 关键词 ""RF port 3A1 3B1 DUT port front end card allocation site""，获取多 site RF 测试中 port
+  分配的具体示例和规则
+  4. 使用 ate_kb.retrieve 搜索 ""port pin tester resource channel DUT signal analog digital pin group
+  utility""，补充数字测试中 port 作为 pin 分组（如 DSM 中的 source port）的概念以及 DFPT 命令的用法
+  5. 综合以上信息，从两个维度整理答案：Pin（DUT 引脚到 tester channel 的映射、信号属性定义）和
+  Port（数字测试中的 pin 分组/DSM source port，以及 RF 测试中的物理硬件接口如
+  1A/2B/3A），并给出代码示例和引用来源","smt7中port pin的用处是什么                                                                             
+
+  Called ate-kb 6 times (ctrl+o to expand)
+
+⏺ 在 SmarTest 7 中，Port 和 Pin
+  是测试资源配置中的两个核心概念，分别对应不同层级的信号组织方式。它们的用处可以从数字测试和 RF
+  测试两个维度来理解。
+
+  1. Pin（引脚）的用处
+
+  Pin 是测试系统中最基础的信号单元，用于建立 DUT（被测器件）引脚 与 测试机硬件资源 之间的物理连接映射。
+
+  核心作用
+
+  - 建立 DUT 与测试机的连接：通过 Pin Configuration Tool，将 DUT 的每个引脚（如
+  RF_i1、DATA0）映射到测试机的具体通道（tester channel）或资源（如 11801、11701）
+  - 定义信号属性：为每个 pin 配置类型（数字、模拟、RF、电源等）、电平、时序等
+  - 创建 Pin Group：将多个相关 pin 组合成逻辑组（如 PortC = {Pin1, Pin2, Pin3}），便于批量操作
+
+  代码示例
+
+  // 定义 DUT pin 到 tester channel 的映射
+  DFPN 11801,""1"",(Pin1)    // Pin1 映射到 channel 11801
+  DFPN 11701,""2"",(Pin2)    // Pin2 映射到 channel 11701
+  DFPN 11702,""3"",(Pin3)    // Pin3 映射到 channel 11702
+
+  ---
+  2. Port（端口）的用处
+  
+  Port 是 Pin 的集合/分组，用于在更高层次上组织和管理信号，主要服务于特定功能的测试配置。
+
+  在数字测试中的用处
+
+  在数字测试（尤其是 Digital Source Memory, DSM）中，Port 用于区分 source pins（数据源引脚） 和
+  non-source pins：
+
+  - 默认行为：所有配置的 pin 自动分配到默认 port ""@""
+  - DSM 配置：通过定义特定的 port，将使用 source memory 的 pin 归类，从而确定 DSRC label 关联的操作对象
+  - Source pins：port 中定义的、执行 source 动作（向 DUT 发送数据）的引脚
+  - Non-source pins：port 外的其他引脚
+
+  // 将 Pin1 分配到 portA，Pin2/Pin3 分配到 portB
+  DFPT (Pin1),(portA)
+  DFPT (Pin2,Pin3),(portB)
+  DFPT (Pin1,Pin2,Pin3),(PortC)   // 多个 pin 组成一个 port
+  DFPT (Pin4,Pin5),(PortD)
+
+  在 RF 测试（Port Scale RF）中的用处
+
+  在 RF 测试中，Port 是物理硬件层面的 RF 信号接口，直接对应前端卡（Front End Card）上的资源：
+
+  ┌───────────────────┬─────────────┬────────────────────────────┐
+  │     Port 类型     │  编号范围   │          功能特点          │
+  ├───────────────────┼─────────────┼────────────────────────────┤
+  │ Source-optimized  │ Ports 1A-1D │ 优化用于信号源输出（激励） │
+  ├───────────────────┼─────────────┼────────────────────────────┤
+  │ Measure-optimized │ Ports 2A-2D │ 优化用于信号测量（接收）   │
+  ├───────────────────┼─────────────┼────────────────────────────┤
+  │ Source-only       │ Ports 3A-3D │ 仅用于信号源输出           │
+  └───────────────────┴─────────────┴────────────────────────────┘
+
+  RF Port 的具体作用
+
+  1. DUT RF 引脚到硬件的分配：将 DUT 的 RF 引脚（如 RF_i1、RF_i2）分配到具体的 RF port（如
+  3A1、3B1）和前端卡（如 RFE324）
+
+  | DUT pin name | RF port | FE card |
+  |--------------|---------|---------|
+  | RF_i1        | 3A1     | RFE324  |
+  | RF_i2        | 3B1     | RFE324  |
+
+  2. 多 site 资源隔离：在多 site 测试中，不同 site 的 DUT pin 应分配到不同的 RF port
+  和前端卡，避免资源冲突
+    - Site 1：3A1 → RFE324
+    - Site 2：3A2 → RFE323
+  3. 决定并行/串行测试能力：Port 的分配直接影响哪些 site 可以并行测试、哪些必须串行
+    - 相同类型的 port（如 Site 1: 1A1 和 Site 2: 1A2）→ 支持并行测量和源输出
+    - 不同类型 port 混合分配 → 可能导致半并行或串行执行
+
+  ---
+  3. Port + Pin 的配合关系
+  
+  ┌──────┬─────────────────┬─────────────────────────────────────────┐
+  │ 层级 │     作用域      │                配置方式                 │
+  ├──────┼─────────────────┼─────────────────────────────────────────┤
+  │ Pin  │ 单个信号点      │ DFPN — 映射 DUT pin → tester channel    │
+  ├──────┼─────────────────┼─────────────────────────────────────────┤
+  │ Port │ 一组 Pin 的集合 │ DFPT — 将 pin list 归类到逻辑/物理 port │
+  └──────┴─────────────────┴─────────────────────────────────────────┘
+
+  典型工作流：
+  1. 先用 DFPN 定义每个 DUT pin 对应的 tester channel
+  2. 再用 DFPT 将相关 pin 分组到 port（数字 DSM）或分配到 RF port（Port Scale RF）
+  3. 最后在 routing/setup 工具中，根据 port/pin 配置进行信号路由和测试执行
+
+  ---
+  引用来源：
+  - Pin Configuration Tool 用途：103113.md、130917.md、103153.md
+  - Port 定义命令（DFPT）：98552_2.md、55282.md
+  - DSM 中的 Pins and Port 概念：19877.md
+  - Port Scale RF Port 类型与分配：102498.md、102568.md、102505.md
+  - MIMO 测量中的 RF Resource 分配：109373.md",
+,5,smt7中timing文件都包含哪些内容？可以以哪种文件格式被使用,是,,含,含,无,通过,"执行步骤
+  
+  ┌──────┬─────────────────────────────────────────────────────────┬──────────────────────────────────┐
+  │ 步骤 │                          操作                           │               工具               │
+  ├──────┼─────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ 1    │ 检索 SMT7 timing setup file 示例和内容                  │ mcp__ate-kb__ate_kb_retrieve     │
+  ├──────┼─────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ 2    │ 获取文档 16956.md（Example of equation based timing     │ mcp__ate-kb__ate_kb_get_document │
+  │      │ setup file）                                            │                                  │
+  ├──────┼─────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ 3    │ 读取本地保存的文档内容（文件过大）                      │ Read（约 600 行）                │
+  ├──────┼─────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ 4    │ 检索 STIL 格式支持情况                                  │ mcp__ate-kb__ate_kb_retrieve     │
+  ├──────┼─────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ 5    │ 检索 equation based timing 与 STIL Reader 关系          │ mcp__ate-kb__ate_kb_retrieve     │
+  ├──────┼─────────────────────────────────────────────────────────┼──────────────────────────────────┤
+  │ 6    │ 综合整理答案                                            │ —                                │
+  └──────┴─────────────────────────────────────────────────────────┴──────────────────────────────────┘","根据从 ATE 知识库检索到的官方文档，回答如下（未使用 skill，全部来自 MCP ate_kb 检索）：
+
+  ---
+  SMT7 Timing 文件包含的内容
+  
+  SmarTest 7 使用 Equation Based Timing（基于方程的时序） 架构，一个 timing 文件通常包含以下四大部分：
+
+  1. 固定命令段（Fixed Commands）
+
+  以数字编号开头，直接定义基础时序参数：
+  - PCLK — Period Clock，定义测试周期长度（如 PCLK 1,1,1000,(@)）
+  - CLKR — Clock Ratio，定义时钟比率（如 CLKR 1,1000,10）
+  - BWDS — Waveform Drive Setup，为引脚设置波形驱动参数
+  - ETDS — Edge Timing Drive Setup，为引脚设置边沿时序参数
+  - DCDT — Data Drive Definition，数据驱动定义
+  - TSUX — Timing Setup Exit，固定时序段结束标记
+  
+  2. 波形表（Wave Table）
+
+  通过 WAVETBL 定义各引脚在不同时序槽的波形动作：
+  - PINS 定义引脚或引脚组
+  - 波形动作格式：""{drive_edge}:{compare}""（如 ""d1:0 d2:0""、""d1:Z r1:L""）
+  - 驱动边沿：d1, d2, d3...
+  - 比较边沿：r1, r2, r3...
+  - 动作值：0（低）、1（高）、Z（高阻）、L（低）、H（高）、X（无关）
+  - brk — break 点，f — 最后向量标记
+  
+  3. 时序方程集（Timing Equation Set）
+
+  通过 EQNSET 使用变量和表达式定义时序：
+  - SPECS — 声明规格变量及其单位（如 f [MHz]、ts_Sx_CP [ns]）
+  - EQUATIONS — 定义变量间关系（如 p = 1/f*1000、CP_ref = p/2）
+  - TIMINGSET — 定义具体时序集名称和周期（如 TIMINGSET 1 ""std""，period = p）
+  - PINS 下的边沿赋值 — 用表达式定义各边沿位置（如 d1 = CP_ref、r1 = CP_ref + tpd_CP_Qx）
+  
+  4. 时序规格定义（Specification）
+
+  通过 SPECSET 定义完整的规格集：
+  - CHECK all — 检查模式
+  - EQNSET 和 WAVETBL 引用 — 关联方程集和波形表
+  - SPECSET — 规格集名称
+  - 变量具体值表格：包含 SPECNAME、ACTUAL、MINIMUM、MAXIMUM、UNITS、COMMENT
+  
+  ---
+  文件格式
+  
+  1. 原生格式：Equation Based Timing Setup File
+
+  - 文本文件，文件头固定为：
+  hp93000,timing,0.1
+  - 文件结束标记：
+  NOOP ""6.5.3"",,,
+  - 使用 EQSP 段标识：
+  EQSP TIM,WVT,#...   -- 波形表段
+  EQSP TIM,EQN,#...   -- 方程集段
+  EQSP TIM,SPS,#...   -- 规格集段
+  - 每个 EQSP 段以 @ 结束
+
+  2. STIL 格式
+
+  通过 STIL Reader 导入或导出：
+  - STIL（Standard Test Interface Language）是行业标准格式
+  - SmarTest 7 提供 STIL Reader 将 STIL 格式的时序/向量转换为 SMT7 内部格式
+  - 也支持通过 bin2stil 工具将 SMT7 格式导出为 STIL
+
+  ---
+  来源：
+  - 16956.md — Example of the equation based timing setup file（SmarTest 7.4.3 官方示例）
+  - 104187.md — Timing equation set reference
+  - 118704.md / 118728.md / 137600.md — STIL Reader 相关文档",

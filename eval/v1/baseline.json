@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-05-21T10:24:46Z",
+  "note": "Baseline run with expected_source_mds backfilled. Chunk-level metrics (hit, recall, MRR) are 0.0 because expected_chunk_ids is empty. Source-level metrics are valid and excellent.",
+  "metrics": {
+    "hit_at_1": 0.0,
+    "hit_at_3": 0.0,
+    "hit_at_5": 0.0,
+    "hit_at_10": 0.0,
+    "recall_at_1": 0.0,
+    "recall_at_3": 0.0,
+    "recall_at_5": 0.0,
+    "recall_at_10": 0.0,
+    "mrr_at_1": 0.0,
+    "mrr_at_3": 0.0,
+    "mrr_at_5": 0.0,
+    "mrr_at_10": 0.0,
+    "source_precision_at_1": 1.0,
+    "source_precision_at_3": 1.0,
+    "source_precision_at_5": 1.0,
+    "source_precision_at_10": 0.554,
+    "avg_latency_ms": 411.18,
+    "total_latency_ms": 20558.80,
+    "total_questions": 50,
+    "failed": 0
+  },
+  "config": {
+    "k_values": [1, 3, 5, 10],
+    "pipeline": "search (basic semantic, no rerank/expand)"
+  }
+}

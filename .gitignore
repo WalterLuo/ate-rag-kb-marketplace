@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+# Linting / Type checking
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Project data (generated / large files)
+data/processed/
+data/qdrant_storage/
+data/qdrant_server/
+
+# Ignore raw data subdirs (local source docs, not committed)
+data/raw/markdown/
+data/raw/assets/
+data/raw/json/
+data/raw/*.json
+data/raw/igxl_extracted/
+
+# Embedding model cache
+embeddings/cache/
+
+# Evaluation outputs
+evaluation_*.json
+/reports/
+
+# Delivery artifacts
+*.tar.gz
+
+# Plugin-distributed MCP configuration is tracked. Use local Claude/Codex/Cursor
+# settings or .mcp.local.json for machine-specific overrides.
+!.mcp.json
+.mcp.local.json
+
+# Claude — ignore local/session state, allow tracked commands
+.claude/settings.local.json
+.claude/projects/
+.claude/todos/
+.claude/memory/
+.claude/plans/
+.claude/sessions/
+.claude/statsig/
+.claude/logs/
+
+# Private local conversion scripts
+scripts/local/

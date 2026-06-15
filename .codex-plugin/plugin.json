@@ -1,0 +1,48 @@
+{
+  "name": "ate-rag-kb",
+  "version": "0.1.0",
+  "description": "ATE KB Router — routes ATE engineering questions to a local ate_kb MCP knowledge base for cited answers over Advantest V93000/SMT7 and Teradyne J750/IG-XL documentation.",
+  "author": {
+    "name": "Walter Luo",
+    "email": "noreply@github.com",
+    "url": "https://github.com/WalterLuo"
+  },
+  "homepage": "https://github.com/WalterLuo/ate-rag-kb",
+  "repository": "https://github.com/WalterLuo/ate-rag-kb",
+  "license": "MIT",
+  "keywords": [
+    "ate",
+    "ate-kb-router",
+    "semiconductor-test",
+    "smarTest",
+    "v93000",
+    "smt7",
+    "smt8",
+    "j750",
+    "igxl",
+    "tdc",
+    "timing",
+    "levels",
+    "patterns",
+    "rag",
+    "knowledge-base",
+    "mcp"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ATE KB Router",
+    "shortDescription": "Route ATE questions to ate_kb MCP first",
+    "longDescription": "ATE KB Router installs guidance and a portable MCP server configuration so Codex can answer ATE engineering questions through the local ate_kb MCP knowledge base before web or shell fallbacks. It targets Advantest V93000/SMT7 and Teradyne J750/IG-XL documentation, including pin configuration, timing sets, levels, patterns, DPS, PMU, test flow, tester behavior, command syntax, and API references.",
+    "developerName": "Walter Luo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Use ATE KB to answer a SmarTest question.",
+      "Find IG-XL documentation with citations.",
+      "Check whether ate_kb MCP is available."
+    ],
+    "websiteURL": "https://github.com/WalterLuo/ate-rag-kb"
+  }
+}
